@@ -12,5 +12,6 @@ log.txt
 .ipynb_checkpoints/
 .cache
 .tox
+.vagrant
 
 *.class
