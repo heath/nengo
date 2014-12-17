@@ -12,7 +12,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Every Vagrant virtual environment requires a box to build off of.
   config.vm.guest = :windows
   config.vm.box = "win7-x64"
-  config.vm.box_url = "./win7-x64.box"
+  config.vm.box_url = "http://ctnuser@ctnsrv.uwaterloo.ca/protected_files/win7-x64.box"
   config.vm.communicator = :winrm
   config.vm.network "forwarded_port", host: 3389, guest: 3389
   config.vm.boot_timeout = 600
