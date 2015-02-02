@@ -1,3 +1,5 @@
+import weakref
+
 from nengo.base import NengoObject, ObjView
 from nengo.dists import Uniform, UniformHypersphere
 from nengo.neurons import LIF, NeuronTypeParam, Direct
@@ -129,7 +131,7 @@ class Neurons(object):
     Does not currently support any other view-like operations.
     """
     def __init__(self, ensemble):
-        self.ensemble = ensemble
+        self._ensemble = weakref.ref(ensemble)
 
     def __getitem__(self, key):
         return ObjView(self, key)
@@ -142,6 +144,10 @@ class Neurons(object):
 
     def __str__(self):
         return "<Neurons of %s>" % self.ensemble
+
+    @property
+    def ensemble(self):
+        return self._ensemble()
 
     @property
     def size_in(self):
