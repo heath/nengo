@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import csv
 import inspect
 import itertools
 import os
+import os.path
 import re
 import sys
 import time
@@ -101,6 +103,7 @@ class Analytics(Recorder):
             dirname, module_name, function_name, record)
 
         self.raw_data = {}
+        self.summary_data = []
         self.desc = {}
 
     def __enter__(self):
@@ -115,11 +118,27 @@ class Analytics(Recorder):
             self.raw_data[name] = data
             self.desc[name] = desc
 
+    def add_summary_data(self, name, value, desc=""):
+        if self.record:
+            self.summary_data.append((name, value, desc))
+
     def __exit__(self, type, value, traceback):
         if self.record:
             npz_data = dict(self.raw_data)
             npz_data.update({self.DESC_KEY: self.desc})
             np.savez(self.get_filepath('npz'), **npz_data)
+
+            summary_path = self.get_filepath('csv')
+            write_header = not os.path.exists(summary_path)
+            timestamp = time.time()
+            write_header = not os.path.exists(summary_path)
+            with open(summary_path, 'ab') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow(
+                        ('timestamp', 'name', 'value', 'description'))
+                for line in self.summary_data:
+                    writer.writerow((timestamp,) + line)
 
 
 class Timer(object):
