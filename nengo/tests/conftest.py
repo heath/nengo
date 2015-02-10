@@ -41,6 +41,36 @@ def RefSimulator(request):
     return ReferenceSimulator
 
 
+def construct_recorder_dirname(request, name):
+    simulator, nl = ReferenceSimulator, None
+    if 'Simulator' in request.funcargnames:
+        simulator = request.getfuncargvalue('Simulator')
+    if 'nl' in request.funcargnames:
+        nl = request.getfuncargvalue('nl')
+    elif 'nl_nodirect' in request.funcargnames:
+        nl = request.getfuncargvalue('nl_nodirect')
+
+    dirname = "%s.%s" % (simulator.__module__, name)
+    if nl is not None:
+        dirname = os.path.join(dirname, nl.__name__)
+    return dirname
+
+
+def activate_recorder(cls, request, name):
+    record = request.config.getvalue(name)
+    if record is not True and record is not False:
+        dirname = record
+        record = True
+    else:
+        dirname = construct_recorder_dirname(request, name)
+
+    recorder = cls(
+        dirname, request.module.__name__, request.function.__name__,
+        record=record)
+    request.addfinalizer(lambda: recorder.__exit__(None, None, None))
+    return recorder.__enter__()
+
+
 @pytest.fixture
 def plt(request):
     """a pyplot-compatible plotting interface.
@@ -54,30 +84,12 @@ def plt(request):
     If you need to override the default filename, set `plt.saveas` to
     the desired filename.
     """
-    simulator, nl = ReferenceSimulator, None
-    if 'Simulator' in request.funcargnames:
-        simulator = request.getfuncargvalue('Simulator')
-    if 'nl' in request.funcargnames:
-        nl = request.getfuncargvalue('nl')
-    elif 'nl_nodirect' in request.funcargnames:
-        nl = request.getfuncargvalue('nl_nodirect')
-    plotter = Plotter(simulator, request.module, request.function, nl=nl)
-    request.addfinalizer(lambda p=plotter: p.__exit__(None, None, None))
-    return plotter.__enter__()
+    return activate_recorder(Plotter, request, 'plots')
 
 
 @pytest.fixture
 def analytics(request):
-    simulator, nl = ReferenceSimulator, None
-    if 'Simulator' in request.funcargnames:
-        simulator = request.getfuncargvalue('Simulator')
-    if 'nl' in request.funcargnames:
-        nl = request.getfuncargvalue('nl')
-    elif 'nl_nodirect' in request.funcargnames:
-        nl = request.getfuncargvalue('nl_nodirect')
-    analytics = Analytics(simulator, request.module, request.function, nl=nl)
-    request.addfinalizer(lambda: analytics.__exit__(None, None, None))
-    return analytics.__enter__()
+    return activate_recorder(Analytics, request, 'benchmarks')
 
 
 def function_seed(function, mod=0):
@@ -125,10 +137,13 @@ def pytest_generate_tests(metafunc):
 
 
 def pytest_addoption(parser):
-    parser.addoption('--benchmarks', action='store_true', default=False,
-                     help='Also run benchmarking tests')
-    parser.addoption('--plots', action='store_true', default=False,
-                     help='Also run plotting tests')
+    parser.addoption(
+        '--plots', nargs='?', default=False, const=True,
+        help='Save plots (optional with directory to save them in).')
+    parser.addoption(
+        '--benchmarks', nargs='?', default=False, const=True,
+        help='Also run benchmarking tests (optional with directory to save ' +
+        'the data in).')
     parser.addoption('--noexamples', action='store_false', default=True,
                      help='Do not run examples')
     parser.addoption(
