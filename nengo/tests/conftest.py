@@ -89,7 +89,7 @@ def plt(request):
 
 @pytest.fixture
 def analytics(request):
-    return activate_recorder(Analytics, request, 'benchmarks')
+    return activate_recorder(Analytics, request, 'analytics')
 
 
 def function_seed(function, mod=0):
@@ -141,9 +141,8 @@ def pytest_addoption(parser):
         '--plots', nargs='?', default=False, const=True,
         help='Save plots (optional with directory to save them in).')
     parser.addoption(
-        '--benchmarks', nargs='?', default=False, const=True,
-        help='Also run benchmarking tests (optional with directory to save ' +
-        'the data in).')
+        '--analytics', nargs='?', default=False, const=True,
+        help='Save analytics (optional with directory to save the data in).')
     parser.addoption('--noexamples', action='store_false', default=True,
                      help='Do not run examples')
     parser.addoption(
@@ -153,9 +152,21 @@ def pytest_addoption(parser):
 
 def pytest_runtest_setup(item):
     for mark, option, message in [
-            ('benchmark', 'benchmarks', "benchmarks not requested"),
             ('example', 'noexamples', "examples not requested"),
-            ('plot', 'plots', "plots not requested"),
             ('slow', 'slow', "slow tests not requested")]:
         if getattr(item.obj, mark, None) and not item.config.getvalue(option):
             pytest.skip(message)
+
+    if getattr(item.obj, 'noassertions', None):
+        skip = True
+        skipreasons = []
+        for fixture_name, option, message in [
+                ('analytics', 'analytics', "analytics not requested"),
+                ('plt', 'plots', "plots not requested")]:
+            if fixture_name in item.fixturenames:
+                if item.config.getvalue(option):
+                    skip = False
+                else:
+                    skipreasons.append(message)
+        if skip:
+            pytest.skip(" and ".join(skipreasons))

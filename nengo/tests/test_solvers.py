@@ -195,7 +195,7 @@ def test_nnls(Solver, plt, rng):
     assert rel_rmse < 0.02
 
 
-@pytest.mark.benchmark
+@pytest.mark.slow
 def test_subsolvers_L2(rng):
     pytest.importorskip('scipy')
 
@@ -221,7 +221,9 @@ def test_subsolvers_L2(rng):
             "Solver %s" % solver.__name__)
 
 
-@pytest.mark.benchmark
+# FIXME This test will never run as it is using neither the plt nor the
+# analytics fixture, but only a print.
+@pytest.mark.noassertions
 def test_subsolvers_L1(rng):
     pytest.importorskip('sklearn')
 
@@ -233,7 +235,6 @@ def test_subsolvers_L1(rng):
     print(t.duration)
 
 
-@pytest.mark.benchmark
 def test_compare_solvers(Simulator, plt, seed):
     pytest.importorskip('sklearn')
 
@@ -280,7 +281,8 @@ def test_compare_solvers(Simulator, plt, seed):
         assert c, "Solver '%s' does not meet tolerances" % name
 
 
-@pytest.mark.benchmark  # noqa: C901
+@pytest.mark.slow
+@pytest.mark.noassertions
 def test_regularization(Simulator, nl_nodirect, plt):
 
     # TODO: multiple trials per parameter set, with different seeds
@@ -342,7 +344,8 @@ def test_regularization(Simulator, nl_nodirect, plt):
     plt.tight_layout()
 
 
-@pytest.mark.benchmark
+@pytest.mark.slow
+@pytest.mark.noassertions
 def test_eval_points_static(Simulator, plt, rng):
     solver = LstsqL2()
 
@@ -406,7 +409,8 @@ def test_eval_points_static(Simulator, plt, rng):
     plt.ylabel('(rmse - mean) / std')
 
 
-@pytest.mark.benchmark
+@pytest.mark.slow
+@pytest.mark.noassertions
 def test_eval_points(Simulator, nl_nodirect, plt, seed, rng):
     n = 100
     d = 5

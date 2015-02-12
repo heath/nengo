@@ -77,7 +77,7 @@ def test_rates_kernel(Simulator, plt, seed):
     assert rel_rmse < 0.2
 
 
-@pytest.mark.benchmark
+@pytest.mark.noassertions
 def test_rates(Simulator, plt, seed):
     functions = [
         ('isi_zero', lambda t, s: rates_isi(
