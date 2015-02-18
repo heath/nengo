@@ -83,10 +83,6 @@ def validate_ops(sets, ups, incs):
     for node in sets:
         assert len(sets[node]) == 1, (node, sets[node])
 
-    # -- assert that only one op updates any particular view
-    for node in ups:
-        assert len(ups[node]) == 1, (node, ups[node])
-
     # --- assert that any node that is incremented is also set/updated
     for node in incs:
         assert len(sets[node] + ups[node]) > 0, (node)

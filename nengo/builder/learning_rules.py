@@ -19,10 +19,10 @@ class SimBCM(Operator):
         self.delta = delta
         self.learning_rate = learning_rate
 
-        self.sets = []
+        self.sets = [delta]
         self.incs = []
         self.reads = [pre_filtered, post_filtered, theta]
-        self.updates = [delta]
+        self.updates = []
 
     def make_step(self, signals, dt, rng):
         pre_filtered = signals[self.pre_filtered]
@@ -48,10 +48,10 @@ class SimOja(Operator):
         self.learning_rate = learning_rate
         self.beta = beta
 
-        self.sets = []
+        self.sets = [delta]
         self.incs = []
         self.reads = [pre_filtered, post_filtered, transform]
-        self.updates = [delta]
+        self.updates = []
 
     def make_step(self, signals, dt, rng):
         transform = signals[self.transform]
@@ -97,7 +97,8 @@ def build_bcm(model, bcm, rule):
     model.add_op(SimBCM(pre_filtered, post_filtered, theta, delta,
                         learning_rate=bcm.learning_rate))
     model.add_op(ElementwiseInc(
-        model.sig['common'][1], delta, transform, tag="BCM: Inc Transform"))
+        model.sig['common'][1], delta, transform, as_update=True,
+        tag="BCM: Inc Transform"))
 
     # expose these for probes
     model.sig[rule]['theta'] = theta
@@ -125,7 +126,8 @@ def build_oja(model, oja, rule):
     model.add_op(SimOja(pre_filtered, post_filtered, transform, delta,
                         learning_rate=oja.learning_rate, beta=oja.beta))
     model.add_op(ElementwiseInc(
-        model.sig['common'][1], delta, transform, tag="Oja: Inc Transform"))
+        model.sig['common'][1], delta, transform, as_update=True,
+        tag="Oja: Inc Transform"))
 
     # expose these for probes
     model.sig[rule]['pre_filtered'] = pre_filtered
@@ -168,16 +170,19 @@ def build_pes(model, pes, rule):
         model.add_op(DotInc(encoders, correction, encoded, tag="PES:encode"))
 
         encoded_view = encoded.reshape((encoded.size, 1))
-        model.add_op(ElementwiseInc(encoded_view, acts_view, transform,
-                                    tag="PES:Inc Transform"))
+        model.add_op(ElementwiseInc(
+            encoded_view, acts_view, transform, as_update=True,
+            tag="PES:Inc Transform"))
     elif isinstance(conn.pre_obj, Neurons):
         transform = model.sig[conn]['transform']
-        model.add_op(ElementwiseInc(correction_view, acts_view, transform,
-                                    tag="PES:Inc Transform"))
+        model.add_op(ElementwiseInc(
+            correction_view, acts_view, transform, as_update=True,
+            tag="PES:Inc Transform"))
     elif isinstance(conn.pre_obj, Ensemble):
         decoders = model.sig[conn]['decoders']
-        model.add_op(ElementwiseInc(correction_view, acts_view, decoders,
-                                    tag="PES:Inc Decoder"))
+        model.add_op(ElementwiseInc(
+            correction_view, acts_view, decoders, as_update=True,
+            tag="PES:Inc Decoder"))
     else:
         raise ValueError("'pre' object '%s' not suitable for PES learning"
                          % (conn.pre_obj))

@@ -129,28 +129,6 @@ class Operator(object):
                 signals.init(sig.base)
 
 
-class PreserveValue(Operator):
-    """Marks a signal as `set` for the graph checker.
-
-    This is a silly operator that does no computation. It simply marks
-    a signal as `set`, allowing us to apply other ops to signals that
-    we want to preserve their value across multiple time steps. It is
-    used primarily for learning rules.
-    """
-    def __init__(self, dst):
-        self.dst = dst
-
-        self.sets = [dst]
-        self.incs = []
-        self.reads = []
-        self.updates = []
-
-    def make_step(self, signals, dt, rng):
-        def step():
-            pass
-        return step
-
-
 class Reset(Operator):
     """Assign a constant value to a Signal."""
 
@@ -205,16 +183,17 @@ class Copy(Operator):
 class ElementwiseInc(Operator):
     """Increment signal Y by A * X (with broadcasting)"""
 
-    def __init__(self, A, X, Y, tag=None):
+    def __init__(self, A, X, Y, as_update=False, tag=None):
         self.A = A
         self.X = X
         self.Y = Y
+        self.as_update = as_update
         self.tag = tag
 
         self.sets = []
-        self.incs = [Y]
+        self.incs = [] if as_update else [Y]
         self.reads = [A, X]
-        self.updates = []
+        self.updates = [Y] if as_update else []
 
     def __str__(self):
         return 'ElementwiseInc(%s, %s -> %s "%s")' % (
