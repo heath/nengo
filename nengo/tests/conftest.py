@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 
 import numpy as np
 import pytest
@@ -92,6 +93,15 @@ def analytics(request):
     return activate_recorder(Analytics, request, 'analytics')
 
 
+@pytest.fixture
+def analytics_data(request):
+    paths = request.config.getvalue('compare')
+    function_name = re.sub(
+        '^test_[a-zA-Z0-9]*_', 'test_', request.function.__name__, count=1)
+    return [Analytics.load(
+        p, request.module.__name__, function_name) for p in paths]
+
+
 def function_seed(function, mod=0):
     c = function.__code__
 
@@ -143,6 +153,7 @@ def pytest_addoption(parser):
     parser.addoption(
         '--analytics', nargs='?', default=False, const=True,
         help='Save analytics (optional with directory to save the data in).')
+    parser.addoption('--compare', nargs=2, help='Compare analytics results.')
     parser.addoption('--noexamples', action='store_false', default=True,
                      help='Do not run examples')
     parser.addoption(
@@ -151,6 +162,10 @@ def pytest_addoption(parser):
 
 
 def pytest_runtest_setup(item):
+    if (item.config.getvalue('compare') and
+            not getattr(item.obj, 'compare', None)):
+        return
+
     for mark, option, message in [
             ('example', 'noexamples', "examples not requested"),
             ('slow', 'slow', "slow tests not requested")]:
@@ -170,3 +185,21 @@ def pytest_runtest_setup(item):
                     skipreasons.append(message)
         if skip:
             pytest.skip(" and ".join(skipreasons))
+
+
+def pytest_collection_modifyitems(session, config, items):
+    compare = config.getvalue('compare') is None
+    for item in list(items):
+        if (getattr(item.obj, 'compare', None) is None) != compare:
+            items.remove(item)
+
+
+def pytest_terminal_summary(terminalreporter):
+    reports = terminalreporter.getreports('passed')
+    if not reports or terminalreporter.config.getvalue('compare') is None:
+        return
+    terminalreporter.write_sep("=", "PASSED")
+    for rep in reports:
+        for name, content in rep.sections:
+            terminalreporter.writer.sep("-", name)
+            terminalreporter.writer.line(content)
