@@ -196,7 +196,7 @@ def test_nnls(Solver, plt, rng):
 
 
 @pytest.mark.slow
-def test_subsolvers_L2(rng):
+def test_subsolvers_L2(rng, analytics):
     pytest.importorskip('scipy')
 
     ref_solver = cholesky
@@ -209,22 +209,23 @@ def test_subsolvers_L2(rng):
         x0, _ = ref_solver(A, B, sigma)
 
     xs = np.zeros((len(solvers),) + x0.shape)
-    print()
     for i, solver in enumerate(solvers):
         with Timer() as t:
             xs[i], info = solver(A, B, sigma)
-        print("%s: %0.3f (%0.2f) %s" % (
-            solver.__name__, t.duration, t.duration / t0.duration, info))
+        analytics.add_summary_data('solver_name', solver.__name__)
+        analytics.add_summary_data('duration', "%0.3f" % t.duration)
+        analytics.add_summary_data(
+            'rel_duration', "%0.2f" % (t.duration / t0.duration),
+            desc="Duration relative to reference solver.")
+        analytics.add_summary_data('info', info)
 
     for solver, x in zip(solvers, xs):
         assert np.allclose(x0, x, atol=1e-5, rtol=1e-3), (
             "Solver %s" % solver.__name__)
 
 
-# FIXME This test will never run as it is using neither the plt nor the
-# analytics fixture, but only a print.
 @pytest.mark.noassertions
-def test_subsolvers_L1(rng):
+def test_subsolvers_L1(rng, analytics):
     pytest.importorskip('sklearn')
 
     A, B = get_system(m=2000, n=1000, d=10, rng=rng)
@@ -232,7 +233,7 @@ def test_subsolvers_L1(rng):
     l1 = 1e-4
     with Timer() as t:
         LstsqL1(l1=l1, l2=0)(A, B, rng=rng)
-    print(t.duration)
+    analytics.add_summary_data('duration', t.duration)
 
 
 def test_compare_solvers(Simulator, plt, seed):
@@ -411,7 +412,7 @@ def test_eval_points_static(Simulator, plt, rng):
 
 @pytest.mark.slow
 @pytest.mark.noassertions
-def test_eval_points(Simulator, nl_nodirect, plt, seed, rng):
+def test_eval_points(Simulator, nl_nodirect, plt, analytics, seed, rng):
     n = 100
     d = 5
     filter = 0.08
@@ -457,7 +458,9 @@ def test_eval_points(Simulator, nl_nodirect, plt, seed, rng):
             tmask = (t > t0) & (t < t1)
 
             rmses[i, j] = rms(yt[tmask] - xt[tmask])
-            print("done %d (%d) in %0.3f s" % (n_points, j, timer.duration))
+            analytics.add_summary_data('n_points', n_points)
+            analytics.add_summary_data('trial', j)
+            analytics.add_summary_data('duration', timer.duration, 'seconds')
 
     # subtract out mean for each model
     rmses_norm = rmses - rmses.mean(0, keepdims=True)
