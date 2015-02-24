@@ -6,7 +6,7 @@ import pytest
 import nengo
 from nengo.processes import WhiteNoise
 from nengo.synapses import (
-    Alpha, filt, filtfilt, LinearFilter, Lowpass, SynapseParam)
+    Alpha, filt, filtfilt, LinearFilter, Lowpass, SynapseParam, Triangle)
 from nengo.utils.testing import allclose
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,20 @@ def test_alpha(Simulator, plt, seed):
     y = filt(x, LinearFilter(num, den), dt=dt)
 
     assert allclose(t, y, yhat, delay=dt, atol=5e-6, plt=plt)
+
+
+def test_triangle(Simulator, plt, rng):
+    dt = 1e-3
+    tau = 0.03
+    t = dt * np.arange(1. / dt)
+    x = rng.normal(size=t.shape)
+
+    n_taps = int(round(tau / dt)) + 1
+    num = np.arange(n_taps, 0, -1, dtype=float)
+    num /= num.sum()
+    y = np.convolve(x, num)[:len(t)]
+    yhat = filt(x, Triangle(tau), dt)
+    assert allclose(t, y, yhat, rtol=0, plt=plt)
 
 
 def test_decoders(Simulator, plt, seed):
