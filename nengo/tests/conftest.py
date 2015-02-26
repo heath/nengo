@@ -17,10 +17,10 @@ test_seed = 0  # changing this will change seeds for all tests
 
 _Simulator = nengo.simulator.Simulator
 _RefSimulator = nengo.simulator.Simulator
-
+_neuron_types = [Direct, LIF, LIFRate, RectifiedLinear, Sigmoid]
 
 def pytest_configure(config):
-    global _Simulator, _RefSimulator
+    global _Simulator, _RefSimulator, _neuron_types
 
     rc.reload_rc([])
     rc.set('decoder_cache', 'enabled', 'false')
@@ -29,6 +29,10 @@ def pytest_configure(config):
         _Simulator = load_class(config.getoption('simulator')[0])
     if config.getoption('ref_simulator'):
         _RefSimulator = load_class(config.getoption('ref_simulator')[0])
+
+    if config.getoption('neurons'):
+        _neuron_types = [
+            load_class(n) for n in config.getoption('neurons')[0].split(',')]
 
 
 def load_class(fully_qualified_name):
@@ -121,10 +125,10 @@ def seed(request):
 def pytest_generate_tests(metafunc):
     if "nl" in metafunc.funcargnames:
         metafunc.parametrize(
-            "nl", [Direct, LIF, LIFRate, RectifiedLinear, Sigmoid])
+            "nl", _neuron_types)
     if "nl_nodirect" in metafunc.funcargnames:
         metafunc.parametrize(
-            "nl_nodirect", [LIF, LIFRate, RectifiedLinear, Sigmoid])
+            "nl_nodirect", [n for n in _neuron_types if n is not Direct])
 
 
 def pytest_addoption(parser):
@@ -132,6 +136,8 @@ def pytest_addoption(parser):
                      help='Specify simulator under test.')
     parser.addoption('--ref-simulator', nargs=1, type=str, default=None,
                      help='Specify reference simulator under test.')
+    parser.addoption('--neurons', nargs=1, type=str, default=None,
+                     help='Neuron types under test (comma separated).')
     parser.addoption('--benchmarks', action='store_true', default=False,
                      help='Also run benchmarking tests')
     parser.addoption('--plots', action='store_true', default=False,
