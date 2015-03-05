@@ -52,9 +52,10 @@ def build_decoders(model, conn, transform, rng):
         transform = np.array(1., dtype=np.float64)
 
     try:
-        decoders, solver_info = solve_for_decoders(
-            conn.solver, conn.pre_obj.neuron_type, gain, bias, x, targets,
-            rng=rng, E=E)
+        decoders, solver_info = model.decoder_cache.wrap_solver(
+            solve_for_decoders)(
+                conn.solver, conn.pre_obj.neuron_type, gain, bias, x, targets,
+                rng=rng, E=E)
     except ZeroActivityError:
         raise ZeroActivityError(
             "Building %s: 'activites' matrix is all zero for %s. "
