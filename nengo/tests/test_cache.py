@@ -404,8 +404,9 @@ sim = nengo.Simulator(model)
             overall_p = 1. - np.prod(1. - p_values)
             if overall_p < .05:
                 print(
-                    "  Significant change (p <= {p:.3f}). See plots for "
-                    "details.".format(p=np.ceil(overall_p * 1000.) / 1000.))
+                    "  {label}: Significant change (p <= {p:.3f}). See plots "
+                    "for details.".format(
+                        label=label, p=np.ceil(overall_p * 1000.) / 1000.))
             else:
                 print("  {label}: No significant change.".format(label=label))
 
