@@ -3,6 +3,7 @@
 from __future__ import absolute_import, division
 
 from datetime import timedelta
+import importlib
 import os
 import sys
 import time
@@ -10,8 +11,9 @@ import warnings
 
 import numpy as np
 
+from ..rc import rc
 from .stdlib import get_terminal_size
-from .ipython import in_ipynb, has_ipynb_widgets
+from .ipython import get_ipython, has_ipynb_widgets
 
 
 if has_ipynb_widgets():
@@ -30,6 +32,12 @@ warnings.filterwarnings('once', category=MemoryLeakWarning)
 
 def _timestamp2timedelta(timestamp):
     return timedelta(seconds=np.ceil(timestamp))
+
+
+def _load_class(name):
+    mod_name, cls_name = name.rsplit('.', 1)
+    mod = importlib.import_module(mod_name)
+    return getattr(mod, cls_name)
 
 
 class Progress(object):
@@ -174,21 +182,6 @@ class TerminalProgressBar(ProgressBar):
 
     def __init__(self, task="Simulation"):
         super(TerminalProgressBar, self).__init__(task)
-        if in_ipynb():
-            warnings.warn(MemoryLeakWarning((
-                "The {cls}, if used in an IPython notebook,"
-                " will continuously adds invisible content to the "
-                "IPython notebook which may lead to excessive memory usage "
-                "and ipynb files which cannot be opened anymore. Please "
-                "consider doing one of the following:{cr}{cr}"
-                "  * Wrap {cls} in an UpdateEveryN class. This reduces the "
-                "memory consumption, but does not solve the problem "
-                "completely.{cr}"
-                "  * Disable the progress bar.{cr}"
-                "  * Use IPython 2.0 or later and the IPython2ProgressBar "
-                "(this is the default behavior from IPython 2.0 onwards).{cr}"
-                ).format(cls=self.__class__.__name__, cr=os.linesep)))
-            sys.stderr.flush()  # Show warning immediately.
 
     def update(self, progress):
         if progress.finished:
@@ -207,7 +200,7 @@ class TerminalProgressBar(ProgressBar):
         progress_width = max(0, width - len(line))
         progress_str = (
             int(progress_width * progress.progress) * "#").ljust(
-            progress_width)
+                progress_width)
 
         percent_pos = (len(progress_str) - len(percent_str)) // 2
         if percent_pos > 0:
@@ -286,9 +279,6 @@ if has_ipynb_widgets():
         def load_frontend(cls):
             """Loads the JavaScript front-end code required by then widget."""
             get_ipython().run_cell_magic('javascript', '', cls.FRONTEND)
-
-    if in_ipynb():
-        IPythonProgressWidget.load_frontend()
 
 
 class IPython2ProgressBar(ProgressBar):
@@ -517,10 +507,25 @@ def get_default_progressbar():
     -------
     :class:`ProgressBar`
     """
-    if in_ipynb() and has_ipynb_widgets():  # IPython notebook >= 2.0
-        return AutoProgressBar(IPython2ProgressBar())
-    else:  # IPython notebook < 2.0 or any other environment
+    try:
+        pbar = rc.getboolean('progress', 'progress_bar')
+        if pbar:
+            return AutoProgressBar(TerminalProgressBar())
+        else:
+            return NoProgressBar()
+    except ValueError:
+        pass
+
+    pbar = rc.get('progress', 'progress_bar')
+    if pbar.lower() == 'auto':
         return AutoProgressBar(TerminalProgressBar())
+    if pbar.lower() == 'none':
+        return NoProgressBar()
+
+    try:
+        return _load_class(pbar)()
+    except Exception as e:
+        warnings.warn(e)
 
 
 def get_default_progressupdater(progress_bar):
@@ -537,10 +542,19 @@ def get_default_progressupdater(progress_bar):
     -------
     :class:`ProgressUpdater`
     """
-    if in_ipynb() and not isinstance(progress_bar, IPython2ProgressBar):
-        return UpdateN
+    updater = rc.get('progress', 'updater')
+
+    if updater.lower() == 'auto':
+        if get_ipython() is None or isinstance(
+                progress_bar, IPython2ProgressBar):
+            return UpdateEveryT
+        else:
+            return UpdateN
     else:
-        return UpdateEveryT
+        try:
+            return _load_class(updater)
+        except Exception as e:
+            warnings.warn(e)
 
 
 def wrap_with_progressupdater(progress_bar=True):
