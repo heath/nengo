@@ -17,7 +17,6 @@ from .ipython import get_ipython, has_ipynb_widgets
 
 
 if has_ipynb_widgets():
-    from IPython import get_ipython
     from IPython.html import widgets
     from IPython.display import display
     import IPython.utils.traitlets as traitlets
