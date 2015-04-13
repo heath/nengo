@@ -58,7 +58,7 @@ def build_decoders(model, conn, transform, rng):
                 rng=rng, E=E)
     except ZeroActivityError:
         raise ZeroActivityError(
-            "Building %s: 'activites' matrix is all zero for %s. "
+            "Building %s: 'activities' matrix is all zero for %s. "
             "This is because no evaluation points fall in the firing "
             "ranges of any neurons." % (conn, conn.pre_obj))
 
