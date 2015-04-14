@@ -1,0 +1,47 @@
+Advanced
+    convolution.ipynb
+    inhibitory_gating.ipynb
+    izhikevich.ipynb
+    matrix_multiplication.ipynb
+    nef_summary.ipynb
+Basics
+    2d_representation.ipynb
+    addition.ipynb
+    combining.ipynb
+    communication_channel.ipynb
+    many_neurons.ipynb
+    multiplication.ipynb
+    single_neuron.ipynb
+    squaring.ipynb
+    two_neurons.ipynb
+Dynamics
+    controlled_integrator.ipynb
+    controlled_integrator2.ipynb
+    controlled_oscillator.ipynb
+    integrator.ipynb
+    lorenz_attractor.ipynb
+    oscillator.ipynb
+Learning
+    learn_communication_channel.ipynb
+    learn_product.ipynb
+    learn_square.ipynb
+    learn_unsupervised.ipynb
+    Networks
+    basal_ganglia.ipynb
+    ensemble_array.ipynb
+    integrator_network.ipynb
+SPA
+    question_control.ipynb
+    question_memory.ipynb
+    question.ipynb
+    spa_parser.ipynb
+    spa_sequence_routed.ipynb
+    spa_sequence.ipynb
+Usage
+    config.ipynb
+    delay_node.ipynb
+    network_design_advanced.ipynb
+    network_design.ipynb
+    rectified_linear.ipynb
+    strings.ipynb
+    tuning_curves.ipynb
